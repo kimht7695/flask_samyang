@@ -25,6 +25,7 @@
       <li>최초 1회 스캔 = 정품 인증 페이지</li>
       <li>2회 이상 스캔 = 가품/재사용 의심 페이지</li>
       <li>스캔 IP, 접속 이력 확인 가능</li>
+      <li>생성된 QR 전체 조회 및 선택 다운로드 가능</li>
       <li>Railway 배포 후 모바일 스캔 시연 가능</li>
     </ul>
   </div>
@@ -48,7 +49,15 @@
 {% endif %}
 
 <div class="card" style="margin-top:18px;">
-  <h2>최근 생성 QR</h2>
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:6px;">최근 생성 QR</h2>
+      <div class="muted">이력 조회 화면에서 전체 조회와 선택 다운로드를 할 수 있어요.</div>
+    </div>
+    <div class="actions">
+      <a class="btn-line btn-light" href="{{ url_for('history') }}">전체 조회 / 다운로드</a>
+    </div>
+  </div>
   {% if qr_list %}
     <div class="table-wrap">
       <table>
@@ -59,6 +68,7 @@
             <th>연결 URL</th>
             <th>스캔 수</th>
             <th>생성일</th>
+            <th>다운로드</th>
           </tr>
         </thead>
         <tbody>
@@ -69,6 +79,7 @@
               <td>{{ item.target_url }}</td>
               <td>{{ item.scan_count }}</td>
               <td>{{ item.created_at }}</td>
+              <td><a class="small-link" href="{{ url_for('download_qr_png', qr_id=item.id) }}">PNG 저장</a></td>
             </tr>
           {% endfor %}
         </tbody>
