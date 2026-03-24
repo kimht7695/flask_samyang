@@ -1,15 +1,13 @@
 import base64
-import csv
 import io
 import os
 import secrets
 import sqlite3
-import zipfile
 from datetime import datetime
 from urllib.parse import urlencode
 
 import qrcode
-from flask import Flask, g, redirect, render_template, request, url_for, send_file
+from flask import Flask, g, jsonify, redirect, render_template, request, url_for, send_file
 
 app = Flask(__name__)
 app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'data.db')
@@ -20,10 +18,6 @@ def get_base_url() -> str:
     if env_url:
         return env_url
     return request.host_url.rstrip('/')
-
-
-def build_qr_url(token: str, random_param: str) -> str:
-    return f"{get_base_url()}{url_for('scan', token=token)}?{urlencode({'r': random_param})}"
 
 
 def get_db():
@@ -38,6 +32,12 @@ def close_db(error=None):
     db = g.pop('db', None)
     if db is not None:
         db.close()
+
+
+def ensure_column(db, table_name: str, column_name: str, column_def: str):
+    cols = [row[1] for row in db.execute(f"PRAGMA table_info({table_name})").fetchall()]
+    if column_name not in cols:
+        db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
 
 
 def init_db():
@@ -63,10 +63,26 @@ def init_db():
             scanned_at TEXT NOT NULL,
             ip_address TEXT,
             user_agent TEXT,
+            browser_name TEXT,
+            os_name TEXT,
+            device_type TEXT,
+            referer TEXT,
+            accept_language TEXT,
+            latitude REAL,
+            longitude REAL,
+            location_note TEXT,
             FOREIGN KEY(qr_id) REFERENCES qr_tokens(id)
         )
         '''
     )
+    ensure_column(db, 'scan_logs', 'browser_name', 'TEXT')
+    ensure_column(db, 'scan_logs', 'os_name', 'TEXT')
+    ensure_column(db, 'scan_logs', 'device_type', 'TEXT')
+    ensure_column(db, 'scan_logs', 'referer', 'TEXT')
+    ensure_column(db, 'scan_logs', 'accept_language', 'TEXT')
+    ensure_column(db, 'scan_logs', 'latitude', 'REAL')
+    ensure_column(db, 'scan_logs', 'longitude', 'REAL')
+    ensure_column(db, 'scan_logs', 'location_note', 'TEXT')
     db.commit()
     db.close()
 
@@ -83,58 +99,48 @@ def make_qr_data_uri(data: str) -> str:
     return f'data:image/png;base64,{encoded}'
 
 
-def safe_file_name(value: str) -> str:
-    cleaned = ''.join(ch if ch.isalnum() or ch in ('-', '_') else '_' for ch in value.strip())
-    return cleaned[:80] or 'qr'
+def detect_client_info(user_agent: str):
+    ua = (user_agent or '').lower()
+    browser = 'Unknown'
+    os_name = 'Unknown'
+    device = 'PC'
+
+    if 'edg/' in ua:
+        browser = 'Edge'
+    elif 'chrome/' in ua and 'edg/' not in ua:
+        browser = 'Chrome'
+    elif 'safari/' in ua and 'chrome/' not in ua:
+        browser = 'Safari'
+    elif 'firefox/' in ua:
+        browser = 'Firefox'
+    elif 'trident/' in ua or 'msie' in ua:
+        browser = 'Internet Explorer'
+
+    if 'android' in ua:
+        os_name = 'Android'
+        device = 'Mobile'
+    elif 'iphone' in ua or 'ipad' in ua:
+        os_name = 'iOS'
+        device = 'Mobile'
+    elif 'windows' in ua:
+        os_name = 'Windows'
+    elif 'mac os x' in ua or 'macintosh' in ua:
+        os_name = 'macOS'
+    elif 'linux' in ua:
+        os_name = 'Linux'
+
+    if 'tablet' in ua or 'ipad' in ua:
+        device = 'Tablet'
+    elif 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+        device = 'Mobile'
+
+    return browser, os_name, device
 
 
-def fetch_qr_items(selected_ids=None):
-    db = get_db()
-    if selected_ids:
-        placeholders = ','.join('?' for _ in selected_ids)
-        query = f'''
-            SELECT q.id, q.name, q.target_url, q.token, q.random_param, q.scan_count, q.created_at,
-                   MAX(s.scanned_at) AS last_scanned_at
-            FROM qr_tokens q
-            LEFT JOIN scan_logs s ON q.id = s.qr_id
-            WHERE q.id IN ({placeholders})
-            GROUP BY q.id
-            ORDER BY q.id DESC
-        '''
-        return db.execute(query, selected_ids).fetchall()
-
-    return db.execute(
-        '''
-        SELECT q.id, q.name, q.target_url, q.token, q.random_param, q.scan_count, q.created_at,
-               MAX(s.scanned_at) AS last_scanned_at
-        FROM qr_tokens q
-        LEFT JOIN scan_logs s ON q.id = s.qr_id
-        GROUP BY q.id
-        ORDER BY q.id DESC
-        '''
-    ).fetchall()
-
-
-def build_qr_download_zip(items):
-    memory_file = io.BytesIO()
-    with zipfile.ZipFile(memory_file, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-        csv_buffer = io.StringIO()
-        writer = csv.writer(csv_buffer)
-        writer.writerow(['id', 'name', 'target_url', 'scan_count', 'created_at', 'last_scanned_at', 'scan_url'])
-
-        for item in items:
-            qr_url = build_qr_url(item['token'], item['random_param'])
-            file_stem = f"{item['id']:03d}_{safe_file_name(item['name'])}"
-            zf.writestr(f"qr_codes/{file_stem}.png", make_qr_png_bytes(qr_url))
-            writer.writerow([
-                item['id'], item['name'], item['target_url'], item['scan_count'],
-                item['created_at'], item['last_scanned_at'] or '', qr_url
-            ])
-
-        zf.writestr('qr_codes_manifest.csv', csv_buffer.getvalue().encode('utf-8-sig'))
-
-    memory_file.seek(0)
-    return memory_file
+def clean_ip(raw_ip: str):
+    if not raw_ip:
+        return ''
+    return raw_ip.split(',')[0].strip()
 
 
 @app.route('/')
@@ -168,9 +174,11 @@ def admin():
                 (name, target_url, token, random_param, created_at)
             )
             db.commit()
+            qr_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
 
-            qr_url = build_qr_url(token, random_param)
+            qr_url = f"{get_base_url()}{url_for('scan', token=token)}?{urlencode({'r': random_param})}"
             created = {
+                'id': qr_id,
                 'name': name,
                 'target_url': target_url,
                 'token': token,
@@ -179,18 +187,7 @@ def admin():
                 'qr_image': make_qr_data_uri(qr_url),
             }
 
-    qr_rows = db.execute('SELECT * FROM qr_tokens ORDER BY id DESC').fetchall()
-    qr_list = []
-    for item in qr_rows:
-        qr_url = build_qr_url(item['token'], item['random_param'])
-        qr_list.append({
-            'id': item['id'],
-            'name': item['name'],
-            'target_url': item['target_url'],
-            'scan_count': item['scan_count'],
-            'created_at': item['created_at'],
-            'qr_url': qr_url,
-        })
+    qr_list = db.execute('SELECT * FROM qr_tokens ORDER BY id DESC LIMIT 20').fetchall()
     return render_template('admin.html', error=error, created=created, qr_list=qr_list)
 
 
@@ -207,13 +204,22 @@ def scan(token):
         return render_template('invalid.html'), 404
 
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ip_address = clean_ip(request.headers.get('X-Forwarded-For', request.remote_addr or ''))
     user_agent = request.headers.get('User-Agent', '')
+    browser_name, os_name, device_type = detect_client_info(user_agent)
+    referer = request.headers.get('Referer', '')
+    accept_language = request.headers.get('Accept-Language', '')
 
     db.execute(
-        'INSERT INTO scan_logs (qr_id, scanned_at, ip_address, user_agent) VALUES (?, ?, ?, ?)',
-        (qr['id'], now, ip_address, user_agent)
+        '''
+        INSERT INTO scan_logs (
+            qr_id, scanned_at, ip_address, user_agent, browser_name, os_name,
+            device_type, referer, accept_language
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (qr['id'], now, ip_address, user_agent, browser_name, os_name, device_type, referer, accept_language)
     )
+    log_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
     db.execute(
         'UPDATE qr_tokens SET scan_count = scan_count + 1 WHERE id = ?',
         (qr['id'],)
@@ -226,60 +232,143 @@ def scan(token):
         (qr['id'],)
     ).fetchall()
 
-    if updated_qr['scan_count'] == 1:
-        return render_template('authentic.html', qr=updated_qr, logs=logs)
-    return render_template('counterfeit.html', qr=updated_qr, logs=logs)
+    template = 'authentic.html' if updated_qr['scan_count'] == 1 else 'counterfeit.html'
+    return render_template(template, qr=updated_qr, logs=logs, latest_log_id=log_id)
+
+
+@app.post('/api/scan-log/<int:log_id>/location')
+def save_location(log_id):
+    db = get_db()
+    row = db.execute('SELECT id FROM scan_logs WHERE id = ?', (log_id,)).fetchone()
+    if row is None:
+        return jsonify({'ok': False, 'message': 'scan log not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    location_note = (data.get('location_note') or '').strip()[:255]
+
+    db.execute(
+        'UPDATE scan_logs SET latitude = ?, longitude = ?, location_note = ? WHERE id = ?',
+        (latitude, longitude, location_note, log_id)
+    )
+    db.commit()
+    return jsonify({'ok': True})
 
 
 @app.route('/history')
 def history():
-    items = fetch_qr_items()
-    enriched = []
-    for item in items:
-        enriched.append({
-            'id': item['id'],
-            'name': item['name'],
-            'target_url': item['target_url'],
-            'token': item['token'],
-            'random_param': item['random_param'],
-            'scan_count': item['scan_count'],
-            'created_at': item['created_at'],
-            'last_scanned_at': item['last_scanned_at'],
-            'scan_url': build_qr_url(item['token'], item['random_param']),
-            'download_url': url_for('download_qr_png', qr_id=item['id']),
-        })
-    return render_template('history.html', items=enriched)
-
-
-@app.route('/download/qr/<int:qr_id>.png')
-def download_qr_png(qr_id):
     db = get_db()
-    item = db.execute('SELECT * FROM qr_tokens WHERE id = ?', (qr_id,)).fetchone()
-    if item is None:
+    items = db.execute(
+        '''
+        SELECT q.id, q.name, q.target_url, q.token, q.random_param, q.scan_count, q.created_at,
+               MAX(s.scanned_at) AS last_scanned_at
+        FROM qr_tokens q
+        LEFT JOIN scan_logs s ON q.id = s.qr_id
+        GROUP BY q.id
+        ORDER BY q.id DESC
+        '''
+    ).fetchall()
+    return render_template('history.html', items=items, base_url=get_base_url())
+
+
+@app.route('/stats')
+def stats_index():
+    db = get_db()
+    items = db.execute(
+        '''
+        SELECT q.id, q.name, q.target_url, q.scan_count, q.created_at,
+               MAX(s.scanned_at) AS last_scanned_at
+        FROM qr_tokens q
+        LEFT JOIN scan_logs s ON q.id = s.qr_id
+        GROUP BY q.id
+        ORDER BY q.id DESC
+        '''
+    ).fetchall()
+    summary = db.execute(
+        '''
+        SELECT COUNT(*) AS total_qr,
+               COALESCE(SUM(scan_count), 0) AS total_scans
+        FROM qr_tokens
+        '''
+    ).fetchone()
+    return render_template('stats_index.html', items=items, summary=summary)
+
+
+@app.route('/stats/<int:qr_id>')
+def stats_detail(qr_id):
+    db = get_db()
+    qr = db.execute('SELECT * FROM qr_tokens WHERE id = ?', (qr_id,)).fetchone()
+    if qr is None:
         return render_template('invalid.html'), 404
 
-    qr_url = build_qr_url(item['token'], item['random_param'])
-    image_bytes = io.BytesIO(make_qr_png_bytes(qr_url))
-    filename = f"qr_{item['id']:03d}_{safe_file_name(item['name'])}.png"
-    return send_file(image_bytes, mimetype='image/png', as_attachment=True, download_name=filename)
+    logs = db.execute(
+        '''
+        SELECT * FROM scan_logs
+        WHERE qr_id = ?
+        ORDER BY id DESC
+        ''',
+        (qr_id,)
+    ).fetchall()
+
+    by_ip = db.execute(
+        '''
+        SELECT COALESCE(ip_address, '-') AS label, COUNT(*) AS cnt
+        FROM scan_logs
+        WHERE qr_id = ?
+        GROUP BY COALESCE(ip_address, '-')
+        ORDER BY cnt DESC, label ASC
+        LIMIT 10
+        ''',
+        (qr_id,)
+    ).fetchall()
+
+    by_browser = db.execute(
+        '''
+        SELECT TRIM(COALESCE(browser_name, 'Unknown') || ' / ' || COALESCE(os_name, 'Unknown')) AS label,
+               COUNT(*) AS cnt
+        FROM scan_logs
+        WHERE qr_id = ?
+        GROUP BY label
+        ORDER BY cnt DESC, label ASC
+        LIMIT 10
+        ''',
+        (qr_id,)
+    ).fetchall()
+
+    recent_locations = db.execute(
+        '''
+        SELECT scanned_at, ip_address, latitude, longitude, location_note
+        FROM scan_logs
+        WHERE qr_id = ?
+          AND (latitude IS NOT NULL OR longitude IS NOT NULL OR COALESCE(location_note, '') != '')
+        ORDER BY id DESC
+        LIMIT 20
+        ''',
+        (qr_id,)
+    ).fetchall()
+
+    return render_template(
+        'stats_detail.html',
+        qr=qr,
+        logs=logs,
+        by_ip=by_ip,
+        by_browser=by_browser,
+        recent_locations=recent_locations,
+    )
 
 
-@app.route('/download/all')
-def download_all():
-    items = fetch_qr_items()
-    zip_file = build_qr_download_zip(items)
-    return send_file(zip_file, mimetype='application/zip', as_attachment=True, download_name='all_qr_codes.zip')
+@app.route('/qr/<int:qr_id>/download')
+def download_qr(qr_id):
+    db = get_db()
+    qr = db.execute('SELECT * FROM qr_tokens WHERE id = ?', (qr_id,)).fetchone()
+    if qr is None:
+        return render_template('invalid.html'), 404
 
-
-@app.route('/download/selected', methods=['POST'])
-def download_selected():
-    selected_ids = [item for item in request.form.getlist('selected_ids') if item.isdigit()]
-    if not selected_ids:
-        return redirect(url_for('history'))
-
-    items = fetch_qr_items(selected_ids)
-    zip_file = build_qr_download_zip(items)
-    return send_file(zip_file, mimetype='application/zip', as_attachment=True, download_name='selected_qr_codes.zip')
+    qr_url = f"{get_base_url()}{url_for('scan', token=qr['token'])}?{urlencode({'r': qr['random_param']})}"
+    png = make_qr_png_bytes(qr_url)
+    filename = f"qr_{qr['id']}_{qr['name']}.png".replace(' ', '_')
+    return send_file(io.BytesIO(png), mimetype='image/png', as_attachment=True, download_name=filename)
 
 
 if __name__ == '__main__':

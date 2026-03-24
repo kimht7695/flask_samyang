@@ -1,116 +1,46 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}QR 정품/가품 판별{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'QR 정품/가품 판별 시스템' }}</title>
   <style>
-    :root {
-      --bg: #f4f6fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --sub: #6b7280;
-      --line: #d9e0eb;
-      --blue: #2f6fed;
-      --green: #12805c;
-      --red: #c53939;
-      --orange: #d97706;
-      --blue-soft:#ebf2ff;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    .wrap {
-      max-width: 1160px;
-      margin: 0 auto;
-      padding: 28px 20px 40px;
-    }
-    .hero, .card {
-      background: var(--card);
-      border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(17, 24, 39, 0.06);
-      border: 1px solid var(--line);
-    }
-    .hero { padding: 28px 32px; margin-bottom: 22px; }
-    .hero h1 { margin: 0 0 10px; font-size: 24px; }
-    .hero p { margin: 0; color: var(--sub); line-height: 1.6; }
-    .nav { margin-top: 14px; display:flex; gap:12px; flex-wrap: wrap; }
-    .nav a {
-      text-decoration: none; color: var(--blue); font-weight: 700;
-    }
-    .grid { display:grid; grid-template-columns: 1.05fr 1fr; gap: 18px; }
-    .card { padding: 22px; }
-    h2 { margin: 0 0 18px; font-size: 22px; }
-    h3 { margin-top: 0; }
-    label { display:block; font-size: 15px; font-weight:700; margin: 14px 0 8px; }
-    input[type="text"], input[type="url"] {
-      width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid #bfc8d7;
-      font-size: 16px; outline: none; background: #fff;
-    }
-    .btn, .btn-line {
-      margin-top: 18px; border: 0; background: var(--blue); color: #fff;
-      padding: 14px 16px; font-size: 16px; font-weight:700; border-radius: 14px; cursor: pointer;
-      text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    }
-    .btn { width: 100%; }
-    .btn-line { margin-top:0; width:auto; }
-    .btn-light {
-      background: var(--blue-soft); color: var(--blue);
-    }
-    .btn-ghost {
-      background: #fff; color: var(--text); border: 1px solid var(--line);
-    }
-    .alert {
-      padding: 14px 16px; border-radius: 14px; margin-bottom: 12px; font-weight:700;
-    }
-    .alert.error { background: #fdeeee; color: var(--red); }
-    .alert.ok { background: #ebfff7; color: var(--green); }
-    ul.points { margin: 0; padding-left: 20px; line-height: 1.9; }
-    .qr-result { display:grid; grid-template-columns: 220px 1fr; gap: 20px; align-items:start; }
-    .qr-result img { width: 100%; background:#fff; border:1px solid var(--line); border-radius: 14px; padding:12px; }
-    .meta { color: var(--sub); line-height: 1.8; word-break: break-all; }
-    .table-wrap { overflow-x:auto; }
-    table { width:100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align:left; vertical-align: top; }
-    th { background:#f8fafc; }
-    .badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
-    .badge.green { background:#e9fbf3; color:var(--green); }
-    .badge.red { background:#fdecec; color:var(--red); }
-    .badge.orange { background:#fff3e6; color:var(--orange); }
-    .center-card {
-      max-width: 760px; margin: 40px auto 0; padding: 28px; text-align:center;
-    }
-    .status-icon { font-size: 54px; margin-bottom: 14px; }
-    .lead { font-size: 18px; color: var(--sub); line-height:1.7; }
-    .history-box { text-align:left; margin-top: 24px; }
-    .toolbar {
-      display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px;
-    }
-    .actions { display:flex; gap:10px; flex-wrap:wrap; }
-    .check-cell { width: 44px; text-align:center; }
-    .muted { color: var(--sub); font-size: 13px; }
-    .row-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .small-link { color: var(--blue); text-decoration:none; font-weight:700; }
-    @media (max-width: 900px) {
-      .grid, .qr-result { grid-template-columns: 1fr; }
-      .hero { padding: 22px; }
-      .card { padding: 18px; }
-      .toolbar { align-items:flex-start; }
-    }
+    body{font-family:Arial,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#f3f6fb;color:#1f2937;margin:0}
+    .wrap{max-width:1120px;margin:24px auto;padding:0 16px}
+    .card{background:#fff;border:1px solid #d7deea;border-radius:20px;padding:24px;margin-bottom:20px}
+    h1,h2,h3{margin:0 0 14px 0;color:#0f172a}
+    p{line-height:1.6;color:#475569}
+    a{color:#2563eb;text-decoration:none}
+    .nav a{margin-right:14px;font-weight:700}
+    .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
+    .btn{display:inline-block;background:#2563eb;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;border:none;cursor:pointer}
+    .btn.secondary{background:#e2e8f0;color:#0f172a}
+    input[type=text],input[type=url]{width:100%;padding:14px;border:1px solid #cbd5e1;border-radius:12px;box-sizing:border-box;font-size:16px}
+    label{display:block;font-weight:700;margin:14px 0 8px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}
+    th{background:#f8fafc;color:#334155}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:700}
+    .badge.ok{background:#dcfce7;color:#166534}
+    .badge.warn{background:#ffedd5;color:#c2410c}
+    .muted{color:#64748b;font-size:14px}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+    .kpi .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:16px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+    .right{display:flex;gap:8px;flex-wrap:wrap}
+    .flash{padding:14px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;margin-bottom:14px}
+    @media (max-width: 900px){.grid,.kpi{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
+    <div class="card">
       <h1>QR 정품/가품 판별 시연 시스템</h1>
       <p>QR코드 안에 특정 URL과 난수 파라미터를 저장하고, 최초 1회 스캔은 정품 페이지, 2회차부터는 가품 의심 페이지를 표시하는 Flask 기반 데모입니다.</p>
       <div class="nav">
         <a href="{{ url_for('admin') }}">관리자</a>
         <a href="{{ url_for('history') }}">이력 조회</a>
+        <a href="{{ url_for('stats_index') }}">통계</a>
       </div>
     </div>
     {% block content %}{% endblock %}

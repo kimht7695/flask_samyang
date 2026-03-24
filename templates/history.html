@@ -1,79 +1,27 @@
 {% extends 'base.html' %}
-{% block title %}이력 조회{% endblock %}
 {% block content %}
 <div class="card">
-  <div class="toolbar">
-    <div>
-      <h2 style="margin-bottom:6px;">QR 생성 및 스캔 이력</h2>
-      <div class="muted">전체 QR 조회, 선택 다운로드, 전체 일괄 ZIP 다운로드가 가능합니다.</div>
-    </div>
-    <div class="actions">
-      <a class="btn-line btn-light" href="{{ url_for('download_all') }}">전체 ZIP 다운로드</a>
-    </div>
-  </div>
-
-  {% if items %}
-    <form method="post" action="{{ url_for('download_selected') }}">
-      <div class="actions" style="margin-bottom:14px;">
-        <button class="btn-line" type="submit">선택 QR ZIP 다운로드</button>
-        <button class="btn-line btn-ghost" type="button" onclick="toggleAll(true)">전체 선택</button>
-        <button class="btn-line btn-ghost" type="button" onclick="toggleAll(false)">선택 해제</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="check-cell"><input type="checkbox" onclick="toggleAll(this.checked)"></th>
-              <th>ID</th>
-              <th>이름</th>
-              <th>연결 URL</th>
-              <th>스캔 수</th>
-              <th>마지막 스캔</th>
-              <th>생성일</th>
-              <th>스캔 URL</th>
-              <th>다운로드</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in items %}
-              <tr>
-                <td class="check-cell"><input type="checkbox" name="selected_ids" value="{{ item.id }}"></td>
-                <td>{{ item.id }}</td>
-                <td>{{ item.name }}</td>
-                <td>{{ item.target_url }}</td>
-                <td>
-                  {% if item.scan_count == 0 %}
-                    <span class="badge orange">미스캔</span>
-                  {% elif item.scan_count == 1 %}
-                    <span class="badge green">1회 정품</span>
-                  {% else %}
-                    <span class="badge red">{{ item.scan_count }}회 의심</span>
-                  {% endif %}
-                </td>
-                <td>{{ item.last_scanned_at or '-' }}</td>
-                <td>{{ item.created_at }}</td>
-                <td><div class="muted">{{ item.scan_url }}</div></td>
-                <td>
-                  <div class="row-actions">
-                    <a class="small-link" href="{{ item.download_url }}">PNG 저장</a>
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </form>
-  {% else %}
-    <div class="meta">등록된 QR이 없습니다.</div>
-  {% endif %}
+  <h2>QR 생성 및 스캔 이력</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>이름</th><th>연결 URL</th><th>스캔 수</th><th>마지막 스캔</th><th>생성일</th><th>스캔 URL</th><th>통계</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.name }}</td>
+        <td class="mono">{{ item.target_url }}</td>
+        <td>{% if item.scan_count > 0 %}<span class="badge ok">{{ item.scan_count }}회</span>{% else %}<span class="badge warn">미스캔</span>{% endif %}</td>
+        <td>{{ item.last_scanned_at or '-' }}</td>
+        <td>{{ item.created_at }}</td>
+        <td class="mono">{{ base_url }}/scan/{{ item.token }}?r={{ item.random_param }}</td>
+        <td><a href="{{ url_for('stats_detail', qr_id=item.id) }}">상세 통계</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">이력이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
-
-<script>
-  function toggleAll(checked) {
-    document.querySelectorAll('input[name="selected_ids"]').forEach(function (el) {
-      el.checked = checked;
-    });
-  }
-</script>
 {% endblock %}

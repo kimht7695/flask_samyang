@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <div class="right" style="justify-content:space-between;align-items:flex-start">
+    <div>
+      <h2>QR 상세 통계 #{{ qr.id }} - {{ qr.name }}</h2>
+      <p class="mono">연결 URL: {{ qr.target_url }}</p>
+      <p class="muted">생성일 {{ qr.created_at }}</p>
+    </div>
+    <div class="right">
+      <a class="btn secondary" href="{{ url_for('download_qr', qr_id=qr.id) }}">QR PNG</a>
+      <a class="btn secondary" href="{{ url_for('history') }}">이력 조회</a>
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="box"><div class="muted">총 스캔</div><h2>{{ qr.scan_count }}</h2></div>
+    <div class="box"><div class="muted">최초 스캔 판정</div><h2>{% if qr.scan_count > 0 %}정품{% else %}-{% endif %}</h2></div>
+    <div class="box"><div class="muted">재스캔 의심</div><h2>{% if qr.scan_count > 1 %}{{ qr.scan_count - 1 }}회{% else %}0회{% endif %}</h2></div>
+    <div class="box"><div class="muted">위치 허용 로그</div><h2>{{ recent_locations|length }}</h2></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>IP 기준 상위 접속</h3>
+    <table>
+      <thead><tr><th>IP</th><th>횟수</th></tr></thead>
+      <tbody>
+        {% for row in by_ip %}
+        <tr><td class="mono">{{ row.label }}</td><td>{{ row.cnt }}</td></tr>
+        {% else %}
+        <tr><td colspan="2" class="muted">데이터 없음</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3>접속 환경 상위</h3>
+    <table>
+      <thead><tr><th>브라우저 / OS</th><th>횟수</th></tr></thead>
+      <tbody>
+        {% for row in by_browser %}
+        <tr><td>{{ row.label }}</td><td>{{ row.cnt }}</td></tr>
+        {% else %}
+        <tr><td colspan="2" class="muted">데이터 없음</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3>최근 스캔 위치 정보</h3>
+  <table>
+    <thead><tr><th>시간</th><th>IP</th><th>좌표</th><th>비고</th></tr></thead>
+    <tbody>
+      {% for row in recent_locations %}
+      <tr>
+        <td>{{ row.scanned_at }}</td>
+        <td class="mono">{{ row.ip_address or '-' }}</td>
+        <td class="mono">{% if row.latitude is not none or row.longitude is not none %}{{ row.latitude }}, {{ row.longitude }}{% else %}-{% endif %}</td>
+        <td>{{ row.location_note or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">사용자가 위치 권한을 허용한 데이터가 아직 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>전체 스캔 로그</h3>
+  <table>
+    <thead>
+      <tr><th>시간</th><th>어디서(IP)</th><th>누가(접속환경)</th><th>기기</th><th>리퍼러</th><th>언어</th></tr>
+    </thead>
+    <tbody>
+      {% for row in logs %}
+      <tr>
+        <td>{{ row.scanned_at }}</td>
+        <td class="mono">{{ row.ip_address or '-' }}</td>
+        <td>{{ row.browser_name or 'Unknown' }} / {{ row.os_name or 'Unknown' }}</td>
+        <td>{{ row.device_type or '-' }}</td>
+        <td class="mono">{{ row.referer or '-' }}</td>
+        <td>{{ row.accept_language or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">스캔 이력이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:10px">참고: “누가”는 로그인 사용자가 아닌 접속 브라우저/OS 기준 식별 정보입니다. 더 강한 식별이 필요하면 회원 로그인 또는 앱 연동이 필요합니다.</p>
+</div>
+{% endblock %}

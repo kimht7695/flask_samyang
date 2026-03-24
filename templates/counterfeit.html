@@ -1,36 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}가품 의심{% endblock %}
 {% block content %}
-<div class="card center-card">
-  <div class="status-icon">⚠️</div>
-  <h2>가품 또는 재사용 의심</h2>
-  <p class="lead">이 QR은 이미 이전에 스캔된 이력이 있습니다.<br>시연 기준으로 2회차 이상 스캔은 가품 또는 QR 재사용 의심으로 표시됩니다.</p>
-  <p><span class="badge red">{{ qr.scan_count }}회 누적 스캔</span></p>
-
-  <div class="history-box card" style="margin-top:24px; box-shadow:none;">
-    <h3>최근 스캔 이력</h3>
-    {% if logs %}
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>시간</th>
-              <th>IP</th>
-              <th>User-Agent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for log in logs %}
-            <tr>
-              <td>{{ log.scanned_at }}</td>
-              <td>{{ log.ip_address }}</td>
-              <td>{{ log.user_agent }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% endif %}
-  </div>
+<div class="card">
+  <h2>가품/재사용 의심</h2>
+  <p>이 QR은 이미 스캔된 이력이 있습니다. 재사용 또는 유통 이상 가능성을 확인해 주세요.</p>
+  <p><span class="badge warn">주의 필요</span></p>
+  <p>QR명: <strong>{{ qr.name }}</strong></p>
+  <p>누적 스캔 수: <strong>{{ qr.scan_count }}</strong></p>
+  <p><a class="btn secondary" href="{{ qr.target_url }}" target="_blank">원본 페이지 보기</a></p>
+  <p class="muted">위치 권한을 허용하면 통계 페이지에 스캔 위치 좌표도 기록됩니다.</p>
 </div>
+<script>
+(function(){
+  const logId = {{ latest_log_id }};
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    fetch(`/api/scan-log/${logId}/location`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, location_note:'browser-geolocation'})
+    });
+  }, function(){}, {enableHighAccuracy:true, timeout:5000, maximumAge:0});
+})();
+</script>
 {% endblock %}

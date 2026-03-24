@@ -1,92 +1,59 @@
 {% extends 'base.html' %}
-{% block title %}관리자 | QR 정품/가품 판별{% endblock %}
 {% block content %}
 <div class="grid">
   <div class="card">
     <h2>새 QR 생성</h2>
-    {% if error %}
-      <div class="alert error">{{ error }}</div>
-    {% endif %}
+    {% if error %}<div class="flash">{{ error }}</div>{% endif %}
     <form method="post">
-      <label for="name">QR 이름</label>
-      <input id="name" name="name" type="text" placeholder="예: HiddenTag 시연용" />
-
-      <label for="target_url">연결 URL</label>
-      <input id="target_url" name="target_url" type="url" placeholder="예: https://www.hiddentag.com" />
-
-      <button class="btn" type="submit">QR 생성</button>
+      <label>QR 이름</label>
+      <input type="text" name="name" placeholder="예: HiddenTag 시연용">
+      <label>연결 URL</label>
+      <input type="url" name="target_url" placeholder="예: https://www.hiddentag.com">
+      <div style="margin-top:18px"><button class="btn" type="submit">QR 생성</button></div>
     </form>
+    {% if created %}
+    <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
+    <h3>방금 생성된 QR</h3>
+    <p><img src="{{ created.qr_image }}" alt="qr" style="width:220px;border:1px solid #e5e7eb;padding:10px;border-radius:16px"></p>
+    <p class="mono">{{ created.qr_url }}</p>
+    <div class="right">
+      <a class="btn" href="{{ url_for('download_qr', qr_id=created.id) }}">PNG 다운로드</a>
+      <a class="btn secondary" href="{{ url_for('stats_detail', qr_id=created.id) }}">통계 보기</a>
+    </div>
+    {% endif %}
   </div>
-
   <div class="card">
     <h2>시연 포인트</h2>
-    <ul class="points">
+    <ul>
       <li>QR마다 난수 파라미터 자동 발급</li>
-      <li>최초 1회 스캔 = 정품 인증 페이지</li>
-      <li>2회 이상 스캔 = 가품/재사용 의심 페이지</li>
-      <li>스캔 IP, 접속 이력 확인 가능</li>
-      <li>생성된 QR 전체 조회 및 선택 다운로드 가능</li>
-      <li>Railway 배포 후 모바일 스캔 시연 가능</li>
+      <li>최초 1회 스캔은 정품 페이지</li>
+      <li>2회 이상 스캔은 가품/재사용 의심 페이지</li>
+      <li>각 QR별 스캔 시간, IP, 브라우저, OS, 위치 허용 좌표까지 저장</li>
+      <li>통계 페이지에서 어디서/언제/어떤 접속환경에서 찍었는지 확인 가능</li>
     </ul>
   </div>
 </div>
-
-{% if created %}
-  <div class="card" style="margin-top:18px;">
-    <h2>생성 완료</h2>
-    <div class="qr-result">
-      <div><img src="{{ created.qr_image }}" alt="QR"></div>
-      <div class="meta">
-        <div><strong>QR 이름:</strong> {{ created.name }}</div>
-        <div><strong>연결 URL:</strong> {{ created.target_url }}</div>
-        <div><strong>토큰:</strong> {{ created.token }}</div>
-        <div><strong>난수 파라미터:</strong> {{ created.random_param }}</div>
-        <div><strong>QR 접속 URL:</strong> {{ created.qr_url }}</div>
-        <div style="margin-top:12px;"><span class="badge green">휴대폰 카메라로 바로 스캔 가능</span></div>
-      </div>
-    </div>
-  </div>
-{% endif %}
-
-<div class="card" style="margin-top:18px;">
-  <div class="toolbar">
-    <div>
-      <h2 style="margin-bottom:6px;">최근 생성 QR</h2>
-      <div class="muted">이력 조회 화면에서 전체 조회와 선택 다운로드를 할 수 있어요.</div>
-    </div>
-    <div class="actions">
-      <a class="btn-line btn-light" href="{{ url_for('history') }}">전체 조회 / 다운로드</a>
-    </div>
-  </div>
-  {% if qr_list %}
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>이름</th>
-            <th>연결 URL</th>
-            <th>스캔 수</th>
-            <th>생성일</th>
-            <th>다운로드</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in qr_list %}
-            <tr>
-              <td>{{ item.id }}</td>
-              <td>{{ item.name }}</td>
-              <td>{{ item.target_url }}</td>
-              <td>{{ item.scan_count }}</td>
-              <td>{{ item.created_at }}</td>
-              <td><a class="small-link" href="{{ url_for('download_qr_png', qr_id=item.id) }}">PNG 저장</a></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <div class="meta">아직 생성된 QR이 없습니다. 위에서 하나 생성해 주세요.</div>
-  {% endif %}
+<div class="card">
+  <h2>최근 생성 QR</h2>
+  <table>
+    <thead><tr><th>ID</th><th>이름</th><th>연결 URL</th><th>스캔 수</th><th>생성일</th><th>관리</th></tr></thead>
+    <tbody>
+      {% for item in qr_list %}
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.name }}</td>
+        <td class="mono">{{ item.target_url }}</td>
+        <td>{{ item.scan_count }}</td>
+        <td>{{ item.created_at }}</td>
+        <td class="right">
+          <a href="{{ url_for('download_qr', qr_id=item.id) }}">PNG</a>
+          <a href="{{ url_for('stats_detail', qr_id=item.id) }}">통계</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">생성된 QR이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

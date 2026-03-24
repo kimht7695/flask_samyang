@@ -1,20 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}정품 인증{% endblock %}
 {% block content %}
-<div class="card center-card">
-  <div class="status-icon">✅</div>
+<div class="card">
   <h2>정품입니다</h2>
-  <p class="lead">본 QR은 최초 정상 스캔으로 확인되었습니다.<br>시연 기준으로 이 제품은 정품으로 판별됩니다.</p>
-  <p><span class="badge green">최초 1회 스캔</span></p>
-  <p style="margin-top:20px;"><a class="btn" style="display:inline-block; width:auto; text-decoration:none; padding:14px 24px;" href="{{ qr.target_url }}">등록된 URL로 이동</a></p>
-
-  <div class="history-box card" style="margin-top:24px; box-shadow:none;">
-    <h3>스캔 정보</h3>
-    <div class="meta">
-      <div><strong>QR 이름:</strong> {{ qr.name }}</div>
-      <div><strong>등록 URL:</strong> {{ qr.target_url }}</div>
-      <div><strong>누적 스캔 수:</strong> {{ qr.scan_count }}</div>
-    </div>
-  </div>
+  <p>최초 1회 스캔으로 확인되었습니다.</p>
+  <p><span class="badge ok">정품 인증 성공</span></p>
+  <p>QR명: <strong>{{ qr.name }}</strong></p>
+  <p class="mono">연결 URL: {{ qr.target_url }}</p>
+  <p><a class="btn" href="{{ qr.target_url }}" target="_blank">원본 페이지 이동</a></p>
+  <p class="muted">위치 권한을 허용하면 통계 페이지에 스캔 위치 좌표도 기록됩니다.</p>
 </div>
+<script>
+(function(){
+  const logId = {{ latest_log_id }};
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    fetch(`/api/scan-log/${logId}/location`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, location_note:'browser-geolocation'})
+    });
+  }, function(){}, {enableHighAccuracy:true, timeout:5000, maximumAge:0});
+})();
+</script>
 {% endblock %}

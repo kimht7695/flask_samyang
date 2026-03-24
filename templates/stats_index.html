@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h2>스캔 통계 대시보드</h2>
+  <div class="kpi">
+    <div class="box"><div class="muted">총 QR 수</div><h2>{{ summary.total_qr }}</h2></div>
+    <div class="box"><div class="muted">총 스캔 수</div><h2>{{ summary.total_scans }}</h2></div>
+    <div class="box"><div class="muted">스캔 발생 QR</div><h2>{{ items|selectattr('scan_count', 'gt', 0)|list|length }}</h2></div>
+    <div class="box"><div class="muted">미스캔 QR</div><h2>{{ items|selectattr('scan_count', 'eq', 0)|list|length }}</h2></div>
+  </div>
+</div>
+<div class="card">
+  <h2>QR별 통계 진입</h2>
+  <table>
+    <thead><tr><th>ID</th><th>이름</th><th>연결 URL</th><th>스캔 수</th><th>마지막 스캔</th><th>상세</th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.name }}</td>
+        <td class="mono">{{ item.target_url }}</td>
+        <td>{{ item.scan_count }}</td>
+        <td>{{ item.last_scanned_at or '-' }}</td>
+        <td><a class="btn secondary" href="{{ url_for('stats_detail', qr_id=item.id) }}">상세 보기</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">생성된 QR이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

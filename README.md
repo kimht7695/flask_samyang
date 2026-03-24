@@ -32,3 +32,8 @@ python app.py
 ## 참고
 - SQLite 파일(`data.db`)은 컨테이너 재배포 시 초기화될 수 있습니다.
 - 시연용으로는 충분하지만, 운영용은 PostgreSQL 전환을 권장합니다.
+
+
+추가 기능
+- /stats : QR별 통계 목록
+- /stats/<id> : 각 QR별 스캔 시간, IP, 브라우저/OS, 위치 허용 좌표 조회
