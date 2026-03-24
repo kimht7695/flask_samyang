@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}가품 의심{% endblock %}
+{% block content %}
+<div class="card center-card">
+  <div class="status-icon">⚠️</div>
+  <h2>가품 또는 재사용 의심</h2>
+  <p class="lead">이 QR은 이미 이전에 스캔된 이력이 있습니다.<br>시연 기준으로 2회차 이상 스캔은 가품 또는 QR 재사용 의심으로 표시됩니다.</p>
+  <p><span class="badge red">{{ qr.scan_count }}회 누적 스캔</span></p>
+
+  <div class="history-box card" style="margin-top:24px; box-shadow:none;">
+    <h3>최근 스캔 이력</h3>
+    {% if logs %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>시간</th>
+              <th>IP</th>
+              <th>User-Agent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td>{{ log.scanned_at }}</td>
+              <td>{{ log.ip_address }}</td>
+              <td>{{ log.user_agent }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

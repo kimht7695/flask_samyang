@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}QR 정품/가품 판별{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --sub: #6b7280;
+      --line: #d9e0eb;
+      --blue: #2f6fed;
+      --green: #12805c;
+      --red: #c53939;
+      --orange: #d97706;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+    .hero, .card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(17, 24, 39, 0.06);
+      border: 1px solid var(--line);
+    }
+    .hero { padding: 28px 32px; margin-bottom: 22px; }
+    .hero h1 { margin: 0 0 10px; font-size: 24px; }
+    .hero p { margin: 0; color: var(--sub); line-height: 1.6; }
+    .nav { margin-top: 14px; display:flex; gap:12px; flex-wrap: wrap; }
+    .nav a {
+      text-decoration: none; color: var(--blue); font-weight: 700;
+    }
+    .grid { display:grid; grid-template-columns: 1.05fr 1fr; gap: 18px; }
+    .card { padding: 22px; }
+    h2 { margin: 0 0 18px; font-size: 22px; }
+    h3 { margin-top: 0; }
+    label { display:block; font-size: 15px; font-weight:700; margin: 14px 0 8px; }
+    input[type="text"], input[type="url"] {
+      width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid #bfc8d7;
+      font-size: 16px; outline: none; background: #fff;
+    }
+    .btn {
+      margin-top: 18px; width: 100%; border: 0; background: var(--blue); color: #fff;
+      padding: 14px 16px; font-size: 17px; font-weight:700; border-radius: 14px; cursor: pointer;
+    }
+    .alert {
+      padding: 14px 16px; border-radius: 14px; margin-bottom: 12px; font-weight:700;
+    }
+    .alert.error { background: #fdeeee; color: var(--red); }
+    .alert.ok { background: #ebfff7; color: var(--green); }
+    ul.points { margin: 0; padding-left: 20px; line-height: 1.9; }
+    .qr-result { display:grid; grid-template-columns: 220px 1fr; gap: 20px; align-items:start; }
+    .qr-result img { width: 100%; background:#fff; border:1px solid var(--line); border-radius: 14px; padding:12px; }
+    .meta { color: var(--sub); line-height: 1.8; word-break: break-all; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align:left; vertical-align: top; }
+    th { background:#f8fafc; }
+    .badge { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .badge.green { background:#e9fbf3; color:var(--green); }
+    .badge.red { background:#fdecec; color:var(--red); }
+    .badge.orange { background:#fff3e6; color:var(--orange); }
+    .center-card {
+      max-width: 760px; margin: 40px auto 0; padding: 28px; text-align:center;
+    }
+    .status-icon { font-size: 54px; margin-bottom: 14px; }
+    .lead { font-size: 18px; color: var(--sub); line-height:1.7; }
+    .history-box { text-align:left; margin-top: 24px; }
+    @media (max-width: 900px) {
+      .grid, .qr-result { grid-template-columns: 1fr; }
+      .hero { padding: 22px; }
+      .card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>QR 정품/가품 판별 시연 시스템</h1>
+      <p>QR코드 안에 특정 URL과 난수 파라미터를 저장하고, 최초 1회 스캔은 정품 페이지, 2회차부터는 가품 의심 페이지를 표시하는 Flask 기반 데모입니다.</p>
+      <div class="nav">
+        <a href="{{ url_for('admin') }}">관리자</a>
+        <a href="{{ url_for('history') }}">이력 조회</a>
+      </div>
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

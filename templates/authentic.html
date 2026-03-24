@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}정품 인증{% endblock %}
+{% block content %}
+<div class="card center-card">
+  <div class="status-icon">✅</div>
+  <h2>정품입니다</h2>
+  <p class="lead">본 QR은 최초 정상 스캔으로 확인되었습니다.<br>시연 기준으로 이 제품은 정품으로 판별됩니다.</p>
+  <p><span class="badge green">최초 1회 스캔</span></p>
+  <p style="margin-top:20px;"><a class="btn" style="display:inline-block; width:auto; text-decoration:none; padding:14px 24px;" href="{{ qr.target_url }}">등록된 URL로 이동</a></p>
+
+  <div class="history-box card" style="margin-top:24px; box-shadow:none;">
+    <h3>스캔 정보</h3>
+    <div class="meta">
+      <div><strong>QR 이름:</strong> {{ qr.name }}</div>
+      <div><strong>등록 URL:</strong> {{ qr.target_url }}</div>
+      <div><strong>누적 스캔 수:</strong> {{ qr.scan_count }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

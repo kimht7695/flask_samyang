@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}이력 조회{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>QR 생성 및 스캔 이력</h2>
+  {% if items %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>이름</th>
+            <th>연결 URL</th>
+            <th>스캔 수</th>
+            <th>마지막 스캔</th>
+            <th>생성일</th>
+            <th>스캔 URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.id }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.target_url }}</td>
+              <td>
+                {% if item.scan_count == 0 %}
+                  <span class="badge orange">미스캔</span>
+                {% elif item.scan_count == 1 %}
+                  <span class="badge green">1회 정품</span>
+                {% else %}
+                  <span class="badge red">{{ item.scan_count }}회 의심</span>
+                {% endif %}
+              </td>
+              <td>{{ item.last_scanned_at or '-' }}</td>
+              <td>{{ item.created_at }}</td>
+              <td>{{ base_url }}/scan/{{ item.token }}?r={{ item.random_param }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="meta">등록된 QR이 없습니다.</div>
+  {% endif %}
+</div>
+{% endblock %}
